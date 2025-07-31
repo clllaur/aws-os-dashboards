@@ -1,55 +1,124 @@
-[![npm version](https://badge.fury.io/js/aws-es-kibana.svg)](https://badge.fury.io/js/aws-es-kibana) ![dependencies](https://david-dm.org/santthosh/aws-es-kibana.svg)
-[![Docker Stars](https://img.shields.io/docker/stars/santthosh/aws-es-kibana.svg)](https://registry.hub.docker.com/v2/repositories/santthosh/aws-es-kibana/stars/count/)
+# AWS OpenSearch Dashboards Proxy
 
-[![Deploy](https://www.herokucdn.com/deploy/button.svg)](https://heroku.com/deploy?template=https://github.com/santthosh/aws-es-kibana)
+A Node.js proxy server that provides secure access to AWS OpenSearch clusters and OpenSearch Dashboards.
 
-# AWS ES/Kibana Proxy
+## Features
 
-AWS ElasticSearch/Kibana Proxy to access your [AWS ES](https://aws.amazon.com/elasticsearch-service/) cluster. 
+- **AWS SDK v3**: Updated to use the latest AWS SDK v3 for better performance and modular imports
+- **AWS Signature V4**: Automatic request signing for AWS OpenSearch endpoints
+- **Basic Authentication**: Optional username/password protection
+- **Compression**: Built-in response compression
+- **Health Check**: Optional health check endpoint
+- **Credential Refresh**: Automatic credential refresh when AWS credentials file changes
+- **Modern CLI**: Updated to use yargs v18+ for command-line argument parsing
 
-This is the solution for accessing your cluster if you have [configured access policies](http://docs.aws.amazon.com/elasticsearch-service/latest/developerguide/es-createupdatedomains.html#es-createdomain-configure-access-policies) for your ES domain
+## Installation
+
+```bash
+npm install
+```
 
 ## Usage
 
-Install the npm module 
+### Basic Usage
 
-    npm install -g aws-es-kibana
-    
-Set AWS credentials
-                          
-    export AWS_ACCESS_KEY_ID=XXXXXXXXXXXXXXXXXXX
-    export AWS_SECRET_ACCESS_KEY=XXXXXXXXXXXXXXXXXXX
+```bash
+node index.js your-opensearch-cluster.region.es.amazonaws.com
+```
 
-Run the proxy (do not include the `http` or `https` from your `cluster-endpoint` or the proxy won't function)
+### With Options
 
-    aws-es-kibana <cluster-endpoint>
+```bash
+node index.js your-opensearch-cluster.region.es.amazonaws.com \
+  --port 9200 \
+  --bind-address 127.0.0.1 \
+  --region us-east-1 \
+  --user myuser \
+  --password mypassword
+```
 
-Where cluster-endpoint can be either a URL (i.e. https://search-xxxxx.us-west-2.es.amazonaws.com) or a hostname (i.e. search-xxxxx.us-west-2.es.amazonaws.com). 
-Alternatively, you can set the _AWS_PROFILE_ environment variable
+### Available Options
 
-    AWS_PROFILE=myprofile aws-es-kibana <cluster-endpoint>
-    
-Example with hostname as cluster-endpoint:
+- `-b, --bind-address`: IP address to bind to (default: 127.0.0.1)
+- `-p, --port`: Port to bind to (default: 9200)
+- `-r, --region`: AWS region
+- `-u, --user`: Username for basic auth
+- `-a, --password`: Password for basic auth
+- `-s, --silent`: Remove figlet banner
+- `-H, --health-path`: URI path for health check
+- `-l, --limit`: Request size limit (default: 10000kb)
 
-![aws-es-kibana](https://raw.githubusercontent.com/santthosh/aws-es-kibana/master/aws-es-kibana.png)
+### Environment Variables
 
-### Run within docker container
+- `ENDPOINT`: AWS OpenSearch cluster endpoint
+- `PORT`: Port to bind to (default: 9200)
+- `BIND_ADDRESS`: IP address to bind to (default: 127.0.0.1)
+- `REGION`: AWS region
+- `AUTH_USER`: Username for basic auth
+- `AUTH_PASSWORD`: Password for basic auth
+- `AWS_PROFILE`: AWS profile to use
+- `HEALTH_PATH`: URI path for health check
+- `LIMIT`: Request size limit (default: 10000kb)
 
-If you are familiar with Docker, you can run `aws-es-kibana` within a Docker container
+## AWS Credentials
 
-You can pull the official container for use
+The proxy supports multiple credential sources:
 
-    docker pull santthosh/aws-es-kibana:latest
+1. **AWS Profile**: Set `AWS_PROFILE` environment variable
+2. **AWS SSO**: Supports SSO profiles configured with `aws configure sso`
+3. **Default Credential Chain**: Uses the standard AWS credential chain
+4. **Environment Variables**: AWS_ACCESS_KEY_ID, AWS_SECRET_ACCESS_KEY, AWS_SESSION_TOKEN
 
-(or) Build the image
+### Using AWS SSO
 
-	docker build -t aws-es-kibana .
+If you're using AWS SSO, the proxy will automatically detect and use your SSO credentials:
 
-Run the container (do not forget to pass the required environment variables)
+```bash
+# Configure SSO (if not already done)
+aws configure sso
 
-	docker run -e AWS_ACCESS_KEY_ID -e AWS_SECRET_ACCESS_KEY -p 127.0.0.1:9200:9200 aws-es-kibana -b 0.0.0.0 <cluster-endpoint>
+# Login to SSO
+aws sso login --profile your-sso-profile
 
+# Run the proxy with SSO profile
+AWS_PROFILE=your-sso-profile node index.js your-opensearch-cluster.region.es.amazonaws.com
+```
 
-## Credits
+The proxy will:
 
-Adopted from this [gist](https://gist.github.com/nakedible-p/ad95dfb1c16e75af1ad5). Thanks [@nakedible-p](https://github.com/nakedible-p)
+- Automatically detect SSO profiles
+- Fall back to regular profiles if SSO is not available
+- Provide helpful error messages if SSO authentication is needed
+- Watch for SSO configuration changes and refresh credentials automatically
+
+## Access
+
+- **OpenSearch**: `http://localhost:9200`
+- **OpenSearch Dashboards**: `http://localhost:9200/_dashboards`
+- **Health Check**: `http://localhost:9200/health` (if enabled)
+
+## Changes from AWS SDK v2
+
+This version has been updated to use AWS SDK v3, which provides:
+
+- **Modular imports**: Only import the specific services you need
+- **Better performance**: Reduced bundle size and improved runtime performance
+- **TypeScript support**: Better type safety and IntelliSense
+- **Modern async/await**: Cleaner asynchronous code patterns
+
+### Key Changes
+
+1. **Credential handling**: Now uses `@aws-sdk/credential-providers`
+2. **Request signing**: Uses `@aws-sdk/signature-v4` for V4 request signing
+3. **Crypto**: Uses `@aws-crypto/sha256-js` for SHA256 hashing
+4. **STS client**: Uses `@aws-sdk/client-sts` for credential validation
+5. **CLI parsing**: Updated to use yargs v18+ with modern syntax
+
+## Requirements
+
+- Node.js >= 14.0.0
+- Valid AWS credentials configured
+
+## License
+
+Apache-2.0

@@ -7,7 +7,7 @@
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "engines": {
-    "node": ">=6.3.0"
+    "node": ">=14.0.0"
   },
   "repository": {
     "type": "git",
@@ -32,13 +32,16 @@
     "aws-es-kibana": "index.js"
   },
   "dependencies": {
-    "aws-sdk": "^2.48.0",
-    "body-parser": "^1.15.2",
-    "compression": "^1.6.2",
-    "express": "^4.14.0",
-    "express-basic-auth": "^1.1.5",
-    "figlet": "^1.1.2",
-    "http-proxy": "^1.14.0",
-    "yargs": "^4.8.1"
+    "@aws-sdk/client-sts": "^3.0.0",
+    "@aws-sdk/signature-v4": "^3.0.0",
+    "@aws-sdk/credential-providers": "^3.0.0",
+    "@aws-crypto/sha256-js": "^5.0.0",
+    "body-parser": "^2.2.0",
+    "compression": "^1.8.1",
+    "express": "^5.1.0",
+    "express-basic-auth": "^1.2.1",
+    "figlet": "^1.8.2",
+    "http-proxy": "^1.18.1",
+    "yargs": "^18.0.0"
   }
 }
