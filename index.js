@@ -211,6 +211,9 @@ app.use(async function (req, res) {
   try {
     // Sign the request before proxying
     const url = new URL(ENDPOINT);
+    const origUrl = new URL(
+      req.protocol + "://" + req.get("host") + req.originalUrl
+    );
 
     // Calculate content-sha256 hash
     const body = Buffer.isBuffer(req.body)
@@ -224,28 +227,30 @@ app.use(async function (req, res) {
     // Create the request object in the format expected by SignatureV4
     const request = {
       method: req.method,
-      path: req.url,
+      path: origUrl.pathname,
       headers: {
         Host: url.hostname,
         "x-amz-content-sha256": contentSha256,
       },
+      query: {},
       body: body,
     };
+    origUrl.searchParams.forEach((value, key) => {
+      request.query[key] = value;
+    });
 
-    // Add specific headers that AWS expects to be signed
-    // Based on the canonical string from the error message
-    const headersToInclude = [
-      "accept",
-      "accept-encoding",
-      "accept-language",
-      "content-type",
-      "upgrade-insecure-requests",
-    ];
-
-    headersToInclude.forEach((headerName) => {
-      const value = req.get(headerName);
-      if (value !== undefined) {
-        request.headers[headerName] = value;
+    // Include ALL headers from the original request except the ones we set ourselves
+    Object.keys(req.headers).forEach((headerName) => {
+      const lowerHeaderName = headerName.toLowerCase();
+      // Skip headers we set ourselves
+      if (
+        lowerHeaderName !== "host" &&
+        lowerHeaderName !== "x-amz-content-sha256"
+      ) {
+        const value = req.get(headerName);
+        if (value !== undefined) {
+          request.headers[lowerHeaderName] = value;
+        }
       }
     });
 
@@ -253,15 +258,9 @@ app.use(async function (req, res) {
     const signedRequest = await signer.sign(request);
 
     // Set the signed headers on the request
+    req.headers = signedRequest.headers;
     req.headers.host = signedRequest.headers.host;
-    req.headers["x-amz-date"] = signedRequest.headers["x-amz-date"];
-    req.headers.authorization = signedRequest.headers.authorization;
-    req.headers["x-amz-content-sha256"] =
-      signedRequest.headers["x-amz-content-sha256"];
-    if (signedRequest.headers["x-amz-security-token"]) {
-      req.headers["x-amz-security-token"] =
-        signedRequest.headers["x-amz-security-token"];
-    }
+    req.query = signedRequest.query;
 
     var bufferStream;
     if (Buffer.isBuffer(req.body)) {
@@ -297,7 +296,7 @@ initializeCredentials()
 
     if (!argv.s) {
       console.log(
-        figlet.textSync("AWS ES Proxy!", {
+        figlet.textSync("AWS OS Proxy!", {
           font: "Speed",
           horizontalLayout: "default",
           verticalLayout: "default",
@@ -306,7 +305,7 @@ initializeCredentials()
     }
 
     console.log(
-      "AWS ES cluster available at http://" + BIND_ADDRESS + ":" + PORT
+      "AWS OS cluster available at http://" + BIND_ADDRESS + ":" + PORT
     );
     console.log(
       "OpenSearch Dashboards available at http://" +
